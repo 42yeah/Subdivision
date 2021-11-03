@@ -12,13 +12,15 @@ public:
 
     virtual void render() override;
 
-    glm::vec3 eye;
+    glm::vec3 eye, center, eye_dir;
     glm::mat4 view, perspective;
     GLuint VAO, VBO;
     Program program;
     std::vector<Vertex> vertices;
     Mesh mesh;
 
-    bool subdividing;
+    bool subdividing, outlining;
+
+    bool drawing_outline;
 };
 

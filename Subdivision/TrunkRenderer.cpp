@@ -21,18 +21,23 @@ TrunkRenderer::TrunkRenderer() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, ((void *) (sizeof(float) * 6)));
 
     // Camera setup
-    eye = glm::vec3(0.0f, 2.0f, -5.0f);
+    eye = glm::vec3(2.0f, 2.0f, -5.0f);
+    center = glm::vec3(0.0f);
+    eye_dir = glm::normalize(center - eye);
     view = glm::lookAt(eye, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     perspective = glm::perspective(glm::radians(45.0f), ASPECT, 0.01f, 20.0f);
 
     // Subdivide event handle
     subdividing = false;
+    outlining = false;
+
+    drawing_outline = true;
 }
 
 void TrunkRenderer::render() {
     if (glfwGetKey(get_glfw_window(), GLFW_KEY_SPACE)) {
         if (!subdividing) {
-            mesh.butterfly_subdivide();
+            mesh.butterfly_subdivide(eye_dir);
             glDeleteVertexArrays(1, &VAO);
             glDeleteBuffers(1, &VBO);
 
@@ -54,12 +59,29 @@ void TrunkRenderer::render() {
     } else {
         subdividing = false;
     }
+    if (glfwGetKey(get_glfw_window(), GLFW_KEY_E)) {
+        if (!outlining) {
+            drawing_outline = !drawing_outline;
+            outlining = true;
+        }
+    } else {
+        outlining = false;
+    }
+
+    glm::mat4 model(1.0f);
+    model = glm::rotate(model, (float) glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     program.use();
+    glUniformMatrix4fv(program.loc("model"), 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(program.loc("view"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(program.loc("perspective"), 1, GL_FALSE, glm::value_ptr(perspective));
     glBindVertexArray(VAO);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (drawing_outline) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    
     glDrawArrays(GL_TRIANGLES, 0, (int) vertices.size());
 }

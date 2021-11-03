@@ -12,6 +12,16 @@ void set_glfw_window(GLFWwindow *window);
 
 GLFWwindow *get_glfw_window();
 
-// Slated to be DYNAMICALLY LOADED in the future.
-#define MODEL_PATH "models/shape/shape.obj"
-#define MTL_SEARCH_PATH "models/shape/"
+
+// 例子 1：正方体
+// #define MODEL_PATH "models/shape/shape.obj"
+// #define MTL_SEARCH_PATH "models/shape/"
+
+// 例子 2：ppt 里的图像（但我不太会用 Blender，因此去不掉中间的边）
+// #define MODEL_PATH "models/test/test.obj"
+// #define MTL_SEARCH_PATH "models/test/"
+
+// 例子 3：Blender 的 Suzanne 
+#define MODEL_PATH "models/suzanne/suzanne.obj"
+#define MTL_SEARCH_PATH "models/suzanne/"
+

@@ -9,5 +9,7 @@ out vec4 color;
 
 
 void main() {
+    vec3 objectColor = vec3(1.0);
+ 
     color = vec4(normal, 0);
 }

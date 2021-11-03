@@ -3,6 +3,31 @@
 #include <tiny_obj_loader.h>
 
 
+bool operator==(Edge a, Edge b) {
+    bool same_v1 = glm::distance(a.v1.position, b.v1.position) < 1e-2;
+    bool same_v2 = glm::distance(a.v2.position, b.v2.position) < 1e-2;
+    bool same_v1v2 = glm::distance(a.v2.position, b.v1.position) < 1e-2;
+    bool same_v2v1 = glm::distance(a.v1.position, b.v2.position) < 1e-2;
+    return (same_v1 && same_v2) || (same_v1v2 && same_v2v1);
+}
+
+Face::Face(Edge e1, Edge e2, Edge e3, Vertex v1, Vertex v2, Vertex v3) : e1(e1), e2(e2), e3(e3), v1(v1), v2(v2), v3(v3) {
+
+}
+
+Face::Face(Edge e1, Edge e2, Edge e3, Vertex v1, Vertex v2, Vertex v3, glm::vec3 eye_dir) : e1(e1), e2(e2), e3(e3), v1(v1), v2(v2), v3(v3) {
+    // Update normals
+    glm::vec3 dir1 = glm::normalize(v2.position - v1.position);
+    glm::vec3 dir2 = glm::normalize(v3.position - v1.position);
+    glm::vec3 norm = glm::cross(dir1, dir2);
+    if (glm::dot(norm, eye_dir) > 0) {
+        norm = -norm;
+    }
+    v1.normal = norm;
+    v2.normal = norm;
+    v3.normal = norm;
+}
+
 void Mesh::init() {
     faces.clear();
 
@@ -34,7 +59,7 @@ void Mesh::init() {
     Edge e2 = { v2, v3 };
     Edge e3 = { v1, v3 };
 
-    Face f = { e1, e2, e3, v1, v2, v3 };
+    Face f(e1, e2, e3, v1, v2, v3);
     faces.push_back(f);
 }
 
@@ -109,7 +134,7 @@ void Mesh::init(std::string model_path, std::string mtl_search_path) {
             Edge e2 = { v2, v3 };
             Edge e3 = { v1, v3 };
 
-            Face f = { e1, e2, e3, v1, v2, v3 };
+            Face f(e1, e2, e3, v1, v2, v3);
             faces.push_back(f);
         }
     }
@@ -126,7 +151,7 @@ std::vector<Vertex> Mesh::to_vertices() {
     return vertices;
 }
 
-void Mesh::butterfly_subdivide() {
+void Mesh::butterfly_subdivide(glm::vec3 eye_dir) {
     std::vector<Face> new_faces;
     for (int i = 0; i < faces.size(); i++) {
         Face &f = faces[i];
@@ -143,10 +168,10 @@ void Mesh::butterfly_subdivide() {
         Vertex v5 = subdivide_edge(f, e2, v1);
         Vertex v6 = subdivide_edge(f, e3, v2);
 
-        Face f1 = { Edge{ v1, v4 }, Edge{ v4, v6 }, Edge{ v1, v6 }, v1, v4, v6 };
-        Face f2 = { Edge{ v4, v2 }, Edge{ v2, v5 }, Edge{ v4, v5 }, v4, v2, v5 };
-        Face f3 = { Edge{ v6, v5 }, Edge{ v5, v3 }, Edge{ v6, v3 }, v6, v5, v3 };
-        Face f4 = { Edge{ v4, v6 }, Edge{ v6, v5 }, Edge{ v4, v6 }, v4, v6, v5 };
+        Face f1(Edge{ v1, v4 }, Edge{ v4, v6 }, Edge{ v1, v6 }, v1, v4, v6);
+        Face f2(Edge{ v4, v2 }, Edge{ v2, v5 }, Edge{ v4, v5 }, v4, v2, v5);
+        Face f3(Edge{ v6, v5 }, Edge{ v5, v3 }, Edge{ v6, v3 }, v6, v5, v3);
+        Face f4(Edge{ v4, v5 }, Edge{ v5, v6 }, Edge{ v4, v6 }, v4, v5, v6);
         
         new_faces.push_back(f1);
         new_faces.push_back(f2);
@@ -156,6 +181,32 @@ void Mesh::butterfly_subdivide() {
     faces = new_faces;
 }
 
-Vertex Mesh::subdivide_edge(Face& f, Edge& e, Vertex& v) {
-    return 0.5f * (e.v1 + e.v2);
+std::optional<Vertex> Mesh::get_face_edge_adjacent_vertex(Face& f1, Edge& e) {
+    for (int i = 0; i < faces.size(); i++) {
+        if (&faces[i] == &f1) {
+            continue;
+        }
+        Face &f2 = faces[i];
+        if (f2.e1 == e) {
+            return f2.v3;
+        }
+        if (f2.e2 == e) {
+            return f2.v1;
+        }
+        if (f2.e3 == e) {
+            return f2.v2;
+        }
+    }
+    return {};
 }
+
+Vertex Mesh::subdivide_edge(Face& f, Edge& e, Vertex& b) {
+    Vertex ret = 0.5f * (e.v1 + e.v2);
+    // Now for b
+    auto b2 = get_face_edge_adjacent_vertex(f, e);
+    if (b2.has_value()) {
+        ret = ret + 0.125f * b + 0.125f * *b2;
+    }
+    return ret;
+}
+
