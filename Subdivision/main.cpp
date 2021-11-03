@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include "standards.h"
 #include "TriangleRenderer.h"
+#include "TrunkRenderer.h"
 
 
 int main(void) {
@@ -14,6 +15,7 @@ int main(void) {
 
     GLFWwindow *window = glfwCreateWindow(SCR_W, SCR_H, "Surface Subdivision", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+    set_glfw_window(window);
 
     if (!gladLoadGL()) {
         std::cerr << "ERR! Failed to load GLAD." << std::endl;
@@ -23,10 +25,15 @@ int main(void) {
     // Global OpenGL configurations
     glEnable(GL_DEPTH_TEST);
 
-    TriangleRenderer renderer;
+    TrunkRenderer renderer;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        GLuint err = glGetError();
+        if (err != GL_NONE) {
+            std::cerr << "ERR! OpenGL error: " << err << std::endl;
+        }
 
         renderer.render();
 
